@@ -1,3 +1,4 @@
+tic
 clear, clc;
 spm('Defaults','fMRI');
 spm_jobman('initcfg');
@@ -11,11 +12,11 @@ cd('C:\Users\alexandresayal\Documents\GitHub\SPM_Matlab_Processing');
 
 load('Configs_VP_INHIBITION_SPM.mat')
 
-dataPath = 'F:\RAW_DATA_VP_INHIBITION\VPI_S08';
+dataPath = 'F:\RAW_DATA_VP_INHIBITION\VPI_S01';
 dataTBV = 'F:\RAW_DATA_VP_INHIBITION\PRTs_CrossInhibition'; 
 
 %% ============================= Settings ============================== %%
-subjectName = 'VPIS08';  % Subject name
+subjectName = 'VPIS01';  % Subject name
 %=========================================================================%
 
 subjectIndex = find(not(cellfun('isempty', strfind(datasetConfigs.subjects, subjectName))));
@@ -36,9 +37,6 @@ dataRootSubject = fullfile(datasetConfigs.path, subjectName);
 
 assert(success,'Folder creation aborted.');
 clear dataPath dataTBV;
-
-%% 
-tic
 
 %% Retrieve functional runs info
 functionalRuns = ( dir ( fullfile( dataRootSubject, 'r-*' ) ) );
@@ -373,26 +371,20 @@ beep;
 save(sprintf('workspace_%s_%s',subjectName,datestr(now,'ddmmmmyyyy_HHMM')));
 diary off
 
-%% ----- CUSTOM INHIBITION STUFF --------------------------------------- %%
+%% -- CUSTOM INHIBITION STUFF -- %%
 
 %% -- Create a hMT localizer contrast, using the first functional run
 clear matlabbatch
 
 matlabbatch{1}.spm.stats.con.spmmat = {fullfile(dataRootSubject,'r-run1','ANALYSIS','SPM.mat')};
 matlabbatch{1}.spm.stats.con.consess{1}.tcon.name = 'Motion > Static';
-matlabbatch{1}.spm.stats.con.consess{1}.tcon.weights = [-3 1 1 1 0 0 0 0 0 0 0 0 0 0];
+matlabbatch{1}.spm.stats.con.consess{1}.tcon.weights = [0 1 1 1];
 matlabbatch{1}.spm.stats.con.consess{1}.tcon.sessrep = 'none';
 matlabbatch{1}.spm.stats.con.delete = 0;
 
 spm_jobman('run', matlabbatch);
 
-%% -- Define ROI and extract time course
-
-
-
-
-
-%% ----- CUSTOM ADAPTATION STUFF --------------------------------------- %%
+%% -- CUSTOM ADAPTATION STUFF -- %%
 
 %% -- Create localiser contrast
 clear matlabbatch

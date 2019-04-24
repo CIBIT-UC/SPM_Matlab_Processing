@@ -78,9 +78,14 @@ series = zeros(nFiles,1);
 
 % Iterate on the files and search for the series number
 % The filenames are formated as <subjectID>.<MR>.<series>.(...)
-for ii = 1:nFiles   
-    auxnamesplit = strsplit(files{ii},'.');    
-    series(ii) = str2double(auxnamesplit{3});  
+seriesSplitIdx = 3;
+for ii = 1:nFiles
+    auxnamesplit = strsplit(files{ii},'.');
+    series(ii) = str2double(auxnamesplit{seriesSplitIdx});
+    if isnan(series(ii)) % or maybe the filenames are formatted as <subjectID>.<MR>.<ICNAS_CRANIO>.<series>.(...)
+        seriesSplitIdx = 4;
+        series(ii) = str2double(auxnamesplit{seriesSplitIdx});
+    end
 end
 
 % Find the unique series numbers
@@ -357,30 +362,19 @@ for r = 1:nRuns
             end
             
     end
-        
+    
     % Copy DICOM files of the series/run
     fprintf('Copying %s files...\n',datasetConfigs.runs{r});
-    search_name = [auxnamesplit{1} '.' auxnamesplit{2} '.' num2str(seriesNumbers(r),'%.4i') '*'];
+    if seriesSplitIdx == 3
+        search_name = [auxnamesplit{1} '.' auxnamesplit{2} '.' num2str(seriesNumbers(r),'%.4i') '*'];
+    elseif seriesSplitIdx == 4
+        search_name = [auxnamesplit{1} '.' auxnamesplit{2} '.' auxnamesplit{3} '.' num2str(seriesNumbers(r),'%.4i') '*'];
+    end
     copyfile( fullfile(dataPath,search_name) , dataFolder );
     
-    % Convert to .nii
-    auxdir = dir(fullfile(dataFolder,search_name));    
-    fileList = cellfun(@(x) fullfile(auxdir(1).folder,x),{auxdir.name}','UniformOutput',false);
-    convertDCMtoNII( fileList , niifolder );
+    % Extract important header information
+    auxdir = dir(fullfile(dataFolder,search_name));
     
-    % Rename .nii files beautifully
-%     oldFileNames = dir(fullfile(niifolder,'*.nii'));
-%     niiname = sprintf('%s_%s_%04i',datasetConfigs.subjects{subjectIndex},datasetConfigs.runs{r},seriesNumbers(r));
-%     
-%     switch datasetConfigs.runs{r}
-%         case 'anatomical'
-%            movefile(fullfile(niifolder,oldFileNames.name),fullfile(niifolder,[niiname '.nii'])); 
-%         otherwise
-%            for jj = 1:numel(oldFileNames)
-%                movefile(fullfile(niifolder,oldFileNames(jj).name),fullfile(niifolder,sprintf('%s_%04i.nii',niiname,jj)));
-%            end
-%     end
-
     if ~ strcmp(datasetConfigs.runs{r},'anatomical')
         dcmHeader = dicominfo(fullfile(auxdir(1).folder,auxdir(1).name));
         DCMinfo(idx_info).sliceTimes = dcmHeader.Private_0019_1029;
@@ -393,7 +387,26 @@ for r = 1:nRuns
         
         idx_info = idx_info + 1;
     end
-
+    
+    % Renonimize (necessary due to inconsistent series info on the header)
+    disp('Re-anonimizing...')
+    values.StudyInstanceUID = dicomuid;
+    values.SeriesInstanceUID = dicomuid;
+    values.PatientName = datasetConfigs.subjects{subjectIndex};
+    
+    for p = 1:numel(auxdir)
+       	dicomanon(fullfile(auxdir(p).folder,auxdir(p).name), ...
+                  fullfile(dataFolder, sprintf('%s-%s-%04d.dcm', datasetConfigs.subjects{subjectIndex}, datasetConfigs.runs{r}, p)) , ...
+                  'update', values, ...
+                  'WritePrivate',true);
+    end
+    
+    % Convert to .nii
+    search_name = [datasetConfigs.subjects{subjectIndex} '-' datasetConfigs.runs{r} '-*'];
+    auxdir = dir(fullfile(dataFolder,search_name));    
+    fileList = cellfun(@(x) fullfile(auxdir(1).folder,x),{auxdir.name}','UniformOutput',false);
+    convertDCMtoNII( fileList , niifolder );
+    
 end
 
 save(fullfile(subjectFolder,'DCMinfo.mat'),'DCMinfo');
@@ -405,4 +418,3 @@ success = true;
 disp('[createFolderStructure] Folder structure creation completed.')
 
 end
-
