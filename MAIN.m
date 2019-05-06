@@ -11,11 +11,11 @@ cd('C:\Users\alexandresayal\Documents\GitHub\SPM_Matlab_Processing');
 
 load('Configs_VP_INHIBITION_SPM.mat')
 
-dataPath = 'F:\RAW_DATA_VP_INHIBITION\VPI_S08';
+dataPath = 'F:\RAW_DATA_VP_INHIBITION\VPIS16';
 dataTBV = 'F:\RAW_DATA_VP_INHIBITION\PRTs_CrossInhibition'; 
 
 %% ============================= Settings ============================== %%
-subjectName = 'VPIS08';  % Subject name
+subjectName = 'VPIS16';  % Subject name
 %=========================================================================%
 
 subjectIndex = find(not(cellfun('isempty', strfind(datasetConfigs.subjects, subjectName))));
@@ -342,8 +342,15 @@ for r = 1:numFunctionalRuns
     matlabbatch{1}.spm.stats.fmri_spec.sess.cond = struct('name', {}, 'onset', {}, 'duration', {}, 'tmod', {}, 'pmod', {}, 'orth', {});
     matlabbatch{1}.spm.stats.fmri_spec.sess.multi = {fullfile(prtmatDir.folder,prtmatDir.name)};
     matlabbatch{1}.spm.stats.fmri_spec.sess.regress = struct('name', {}, 'val', {});
-    matlabbatch{1}.spm.stats.fmri_spec.sess.multi_reg = {fullfile(motionRegDir.folder,motionRegDir.name);...
-                                                         fullfile(dataRootSubject,functionalRuns(r).name,'PHYSIO','physio_regressors.txt')};
+    
+    % Check if physio files exist
+    if exist(fullfile(dataRootSubject,functionalRuns(r).name,'PHYSIO','physio_regressors.txt'),'file')
+        matlabbatch{1}.spm.stats.fmri_spec.sess.multi_reg = {fullfile(motionRegDir.folder,motionRegDir.name);...
+                                                             fullfile(dataRootSubject,functionalRuns(r).name,'PHYSIO','physio_regressors.txt')};
+    else
+        matlabbatch{1}.spm.stats.fmri_spec.sess.multi_reg = {fullfile(motionRegDir.folder,motionRegDir.name)};
+    end
+    
     matlabbatch{1}.spm.stats.fmri_spec.sess.hpf = 30*2; % trial length (in seconds) times 2 (corresponding to a 1/60 Hz filter cut-off)
     matlabbatch{1}.spm.stats.fmri_spec.fact = struct('name', {}, 'levels', {});
     matlabbatch{1}.spm.stats.fmri_spec.bases.hrf.derivs = [0 0];
@@ -369,7 +376,7 @@ end
 elapsedTime = toc;
 clear matlabbatch
 disp('Done');
-beep;
+
 save(sprintf('workspace_%s_%s',subjectName,datestr(now,'ddmmmmyyyy_HHMM')));
 diary off
 
@@ -388,75 +395,75 @@ spm_jobman('run', matlabbatch);
 
 %% -- Define ROI and extract time course
 
-
+% manually for now
 
 
 
 %% ----- CUSTOM ADAPTATION STUFF --------------------------------------- %%
 
-%% -- Create localiser contrast
-clear matlabbatch
-
-matlabbatch{1}.spm.stats.con.spmmat = {fullfile(dataRootSubject,'r-loc','ANALYSIS','SPM.mat')};
-matlabbatch{1}.spm.stats.con.consess{1}.tcon.name = 'Motion > Static';
-matlabbatch{1}.spm.stats.con.consess{1}.tcon.weights = [0 -1 1];
-matlabbatch{1}.spm.stats.con.consess{1}.tcon.sessrep = 'none';
-matlabbatch{1}.spm.stats.con.delete = 0;
-
-spm_jobman('run', matlabbatch);
-
-%% -- Create runsB1234 contrasts
-
-for r = 2:numFunctionalRuns
-    clear matlabbatch
-    
-    load(fullfile(dataRootSubject,functionalRuns(r).name,'ANALYSIS','SPM.mat'));
-    
-    matlabbatch{1}.spm.stats.con.spmmat = {fullfile(dataRootSubject,functionalRuns(r).name,'ANALYSIS','SPM.mat')};
-    matlabbatch{1}.spm.stats.con.consess{1}.tcon.name = 'Real Motion > Static';
-    matlabbatch{1}.spm.stats.con.consess{1}.tcon.weights = define_contrasts(SPM,{'Adapt_','NonAdapt'},{'Static'});
-    matlabbatch{1}.spm.stats.con.consess{1}.tcon.sessrep = 'none';
-    matlabbatch{1}.spm.stats.con.consess{2}.tcon.name = 'NonAdapt > Adapt';
-    matlabbatch{1}.spm.stats.con.consess{2}.tcon.weights = define_contrasts(SPM,{'NonAdapt'},{'Adapt_'});
-    matlabbatch{1}.spm.stats.con.consess{2}.tcon.sessrep = 'none';
-    matlabbatch{1}.spm.stats.con.delete = 1;
-    
-    spm_jobman('run', matlabbatch);
-
-end
-
-%% -- Create runsB1234 FFX design
-clear matlabbatch
-
-if ~exist(fullfile(dataRootSubject,'mr','ffx_RunB1234'),'dir')
-    mkdir(fullfile(dataRootSubject,'mr','ffx_RunB1234'));
-end
-
-matlabbatch{1}.spm.stats.mfx.ffx.dir = {fullfile(dataRootSubject,'mr','ffx_RunB1234')};
-matlabbatch{1}.spm.stats.mfx.ffx.spmmat = {
-                                           fullfile(dataRootSubject,'r-runB1','ANALYSIS','SPM.mat')
-                                           fullfile(dataRootSubject,'r-runB2','ANALYSIS','SPM.mat')
-                                           fullfile(dataRootSubject,'r-runB3','ANALYSIS','SPM.mat')
-                                           fullfile(dataRootSubject,'r-runB4','ANALYSIS','SPM.mat')
-                                           };
-matlabbatch{2}.spm.stats.fmri_est.spmmat(1) = cfg_dep('FFX Specification: SPM.mat File', substruct('.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','spmmat'));
-matlabbatch{2}.spm.stats.fmri_est.write_residuals = 0;
-matlabbatch{2}.spm.stats.fmri_est.method.Classical = 1;
-
-spm_jobman('run', matlabbatch);
-
-%% -- Create contrasts for runsB1234 FFX
-clear matlabbatch
-    
-load(fullfile(dataRootSubject,'mr','ffx_RunB1234','SPM.mat'));
-
-matlabbatch{1}.spm.stats.con.spmmat = {fullfile(dataRootSubject,'mr','ffx_RunB1234','SPM.mat')};
-matlabbatch{1}.spm.stats.con.consess{1}.tcon.name = 'Real Motion > Static';
-matlabbatch{1}.spm.stats.con.consess{1}.tcon.weights = define_contrasts(SPM,{'Adapt_','NonAdapt'},{'Static'});
-matlabbatch{1}.spm.stats.con.consess{1}.tcon.sessrep = 'none';
-matlabbatch{1}.spm.stats.con.consess{2}.tcon.name = 'NonAdapt > Adapt';
-matlabbatch{1}.spm.stats.con.consess{2}.tcon.weights = define_contrasts(SPM,{'NonAdapt'},{'Adapt_'});
-matlabbatch{1}.spm.stats.con.consess{2}.tcon.sessrep = 'none';
-matlabbatch{1}.spm.stats.con.delete = 1;
-
-spm_jobman('run', matlabbatch);
+% %% -- Create localiser contrast
+% clear matlabbatch
+% 
+% matlabbatch{1}.spm.stats.con.spmmat = {fullfile(dataRootSubject,'r-loc','ANALYSIS','SPM.mat')};
+% matlabbatch{1}.spm.stats.con.consess{1}.tcon.name = 'Motion > Static';
+% matlabbatch{1}.spm.stats.con.consess{1}.tcon.weights = [0 -1 1];
+% matlabbatch{1}.spm.stats.con.consess{1}.tcon.sessrep = 'none';
+% matlabbatch{1}.spm.stats.con.delete = 0;
+% 
+% spm_jobman('run', matlabbatch);
+% 
+% %% -- Create runsB1234 contrasts
+% 
+% for r = 2:numFunctionalRuns
+%     clear matlabbatch
+%     
+%     load(fullfile(dataRootSubject,functionalRuns(r).name,'ANALYSIS','SPM.mat'));
+%     
+%     matlabbatch{1}.spm.stats.con.spmmat = {fullfile(dataRootSubject,functionalRuns(r).name,'ANALYSIS','SPM.mat')};
+%     matlabbatch{1}.spm.stats.con.consess{1}.tcon.name = 'Real Motion > Static';
+%     matlabbatch{1}.spm.stats.con.consess{1}.tcon.weights = define_contrasts(SPM,{'Adapt_','NonAdapt'},{'Static'});
+%     matlabbatch{1}.spm.stats.con.consess{1}.tcon.sessrep = 'none';
+%     matlabbatch{1}.spm.stats.con.consess{2}.tcon.name = 'NonAdapt > Adapt';
+%     matlabbatch{1}.spm.stats.con.consess{2}.tcon.weights = define_contrasts(SPM,{'NonAdapt'},{'Adapt_'});
+%     matlabbatch{1}.spm.stats.con.consess{2}.tcon.sessrep = 'none';
+%     matlabbatch{1}.spm.stats.con.delete = 1;
+%     
+%     spm_jobman('run', matlabbatch);
+% 
+% end
+% 
+% %% -- Create runsB1234 FFX design
+% clear matlabbatch
+% 
+% if ~exist(fullfile(dataRootSubject,'mr','ffx_RunB1234'),'dir')
+%     mkdir(fullfile(dataRootSubject,'mr','ffx_RunB1234'));
+% end
+% 
+% matlabbatch{1}.spm.stats.mfx.ffx.dir = {fullfile(dataRootSubject,'mr','ffx_RunB1234')};
+% matlabbatch{1}.spm.stats.mfx.ffx.spmmat = {
+%                                            fullfile(dataRootSubject,'r-runB1','ANALYSIS','SPM.mat')
+%                                            fullfile(dataRootSubject,'r-runB2','ANALYSIS','SPM.mat')
+%                                            fullfile(dataRootSubject,'r-runB3','ANALYSIS','SPM.mat')
+%                                            fullfile(dataRootSubject,'r-runB4','ANALYSIS','SPM.mat')
+%                                            };
+% matlabbatch{2}.spm.stats.fmri_est.spmmat(1) = cfg_dep('FFX Specification: SPM.mat File', substruct('.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','spmmat'));
+% matlabbatch{2}.spm.stats.fmri_est.write_residuals = 0;
+% matlabbatch{2}.spm.stats.fmri_est.method.Classical = 1;
+% 
+% spm_jobman('run', matlabbatch);
+% 
+% %% -- Create contrasts for runsB1234 FFX
+% clear matlabbatch
+%     
+% load(fullfile(dataRootSubject,'mr','ffx_RunB1234','SPM.mat'));
+% 
+% matlabbatch{1}.spm.stats.con.spmmat = {fullfile(dataRootSubject,'mr','ffx_RunB1234','SPM.mat')};
+% matlabbatch{1}.spm.stats.con.consess{1}.tcon.name = 'Real Motion > Static';
+% matlabbatch{1}.spm.stats.con.consess{1}.tcon.weights = define_contrasts(SPM,{'Adapt_','NonAdapt'},{'Static'});
+% matlabbatch{1}.spm.stats.con.consess{1}.tcon.sessrep = 'none';
+% matlabbatch{1}.spm.stats.con.consess{2}.tcon.name = 'NonAdapt > Adapt';
+% matlabbatch{1}.spm.stats.con.consess{2}.tcon.weights = define_contrasts(SPM,{'NonAdapt'},{'Adapt_'});
+% matlabbatch{1}.spm.stats.con.consess{2}.tcon.sessrep = 'none';
+% matlabbatch{1}.spm.stats.con.delete = 1;
+% 
+% spm_jobman('run', matlabbatch);
