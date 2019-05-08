@@ -1,11 +1,11 @@
-subjectName = 'VPIS08';
+subjectName = 'VPIS01';
 
 % Read SPM data
 load([subjectName '-MT-5mm-SPM.mat'])
 
 % Read BV
 vtcFile = xff(fullfile('E:','DATA_VP_Inhibition',subjectName,'run-run1-data','PROJECT','ANALYSIS',...
-    'VPIS08_run1_SCCTBL_3DMCTS_LTR_THP0.01Hz_TAL_SD3DVSS5.00mm.vtc'));
+    [subjectName '_run1_SCCTBL_3DMCTS_LTR_THP0.01Hz_TAL_SD3DVSS5.00mm.vtc']));
 voiFile = xff(fullfile('E:','DATA_VP_Inhibition',subjectName,'run-run1-data','PROJECT','ANALYSIS',...
     'VOIs-MT-5mm.voi'));
 

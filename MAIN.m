@@ -11,11 +11,11 @@ cd('C:\Users\alexandresayal\Documents\GitHub\SPM_Matlab_Processing');
 
 load('Configs_VP_INHIBITION_SPM.mat')
 
-dataPath = 'F:\RAW_DATA_VP_INHIBITION\VPIS16';
+dataPath = 'F:\RAW_DATA_VP_INHIBITION\VPIS20';
 dataTBV = 'F:\RAW_DATA_VP_INHIBITION\PRTs_CrossInhibition'; 
 
 %% ============================= Settings ============================== %%
-subjectName = 'VPIS16';  % Subject name
+subjectName = 'VPIS18';  % Subject name
 %=========================================================================%
 
 subjectIndex = find(not(cellfun('isempty', strfind(datasetConfigs.subjects, subjectName))));

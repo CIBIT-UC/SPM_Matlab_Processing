@@ -4,7 +4,7 @@ load('Configs_VP_INHIBITION_SPM.mat')
 
 rawdatapath = fullfile('F:','RAW_DATA_VP_INHIBITION');
 
-subjectName = 'VPIS08';
+subjectName = 'VPIS20';
 rawdatapath = fullfile(rawdatapath,[subjectName '_LOGS']);
 
 s = find(not(cellfun('isempty', strfind(datasetConfigs.subjects, subjectName))));

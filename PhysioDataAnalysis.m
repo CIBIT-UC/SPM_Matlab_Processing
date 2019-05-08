@@ -10,7 +10,7 @@ tapas_physio_init();
 load('Configs_VP_INHIBITION_SPM.mat')
 
 % ============================= Settings ============================== %
-subjectName = 'VPIS08';  % Subject name
+subjectName = 'VPIS20';  % Subject name
 fwhm = 5;                      % SS FWHM in mm
 transf = 'MNI';                % 'TAL' OR 'MNI'
 %=======================================================================%
